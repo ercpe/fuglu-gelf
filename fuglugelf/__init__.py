@@ -25,25 +25,34 @@ class GELFLogger(AppenderPlugin):
             },
         }
     
-        self.log_level = logging.getLevelName(self.config.get(self.section, 'loglevel'))
+        self._log_level = None
+        self._gelf_logger = None
 
-        self.gelf_logger = logging.getLogger('gelf-logger')
-        self.gelf_logger.setLevel(self.log_level)
+    @property
+    def log_level(self):
+        if self._log_level is None:
+            self._log_level = logging.getLevelName(self.config.get(self.section, 'loglevel'))
+        return self._log_level
 
-        handler = graypy.GELFHandler(self.config.get(self.section, 'gelf-host'),
-                                     self.config.getint(self.section, 'gelf-port'))
-        self.gelf_logger.addHandler(handler)
+    @property
+    def gelf_logger(self):
+        if self._gelf_logger is None:
+            self._gelf_logger = logging.getLogger('gelf-logger')
+            self._gelf_logger.setLevel(self.log_level)
     
+            handler = graypy.GELFHandler(self.config.get(self.section, 'gelf-host'),
+                                         self.config.getint(self.section, 'gelf-port'))
+            self._gelf_logger.addHandler(handler)
+        return self._gelf_logger
+
     def process(self, suspect, decision):
-        self.gelf_logger.log(self.log_level, self.__class__.__name__,
+        self.gelf_logger.log(self.log_level, "Suspect %s" % suspect.id,
                              extra=self.build_data(suspect, actioncode_to_string(decision)))
 
     def build_data(self, suspect, decision):
         prefix = "suspect"
         d = {}
 
-        self._logger().info(suspect.tags)
-        
         def _add_to_dict(result, obj, path):
             if isinstance(obj, (int, long, float, bool, basestring, unicode)):
                 result['_'.join(path)] = obj
@@ -55,6 +64,8 @@ class GELFLogger(AppenderPlugin):
                     
                     if k in ('scantimes', 'decisions'):  # special case - list of tuples
                         v = dict(v)
+                    if k == 'fuglu.scantime':  # special case: it's a string in tags
+                        v = float(v)
 
                     _add_to_dict(result, v, path + [k])
         
