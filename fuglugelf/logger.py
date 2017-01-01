@@ -4,7 +4,7 @@ import logging
 
 import graypy
 
-from fuglu.shared import AppenderPlugin, actioncode_to_string
+from fuglu.shared import AppenderPlugin, actioncode_to_string, Suspect
 
 
 class GELFLogger(AppenderPlugin):
@@ -14,6 +14,10 @@ class GELFLogger(AppenderPlugin):
             'loglevel': {
                 'default': 'INFO',
                 'description': 'Log level to use',
+            },
+            'log-source': {
+                'default': 'false',
+                'description': 'Log full message'
             },
             'gelf-host': {
                 'default': 'localhost',
@@ -40,10 +44,18 @@ class GELFLogger(AppenderPlugin):
             self._gelf_logger = logging.getLogger('gelf-logger')
             self._gelf_logger.setLevel(self.log_level)
             
-            handler = graypy.GELFHandler(self.config.get(self.section, 'gelf-host'),
-                                         self.config.getint(self.section, 'gelf-port'))
+            host = self.config.get(self.section, 'gelf-host')
+            port = self.config.getint(self.section, 'gelf-port')
+
+            handler = graypy.GELFHandler(host, port)
             self._gelf_logger.addHandler(handler)
+            self._logger().log(self.log_level, "Sending messages to GELF server at %s:%s on %s", host, port, self.log_level)
+
         return self._gelf_logger
+    
+    @property
+    def log_source(self):
+        return self.config.getboolean(self.section, 'log-source')
     
     def process(self, suspect, decision):
         self.gelf_logger.log(self.log_level, "Suspect %s" % suspect.id,
@@ -60,6 +72,9 @@ class GELFLogger(AppenderPlugin):
                 items = obj if isinstance(obj, dict) else dict((attr, getattr(obj, attr, None)) for attr in dir(obj))
                 for k, v in items.items():
                     if k.startswith('_') or v is None or callable(v):
+                        continue
+                    
+                    if k == 'source' and isinstance(obj, Suspect) and not self.log_source:
                         continue
                     
                     if k in ('scantimes', 'decisions'):  # special case - list of tuples

@@ -23,6 +23,13 @@ To configure the log level and/or the target host, add
 
 to your `fuglu.conf` and restart fuglu.
 
+By default, the `source` property of the `Suspect` class is omitted. You can enable it using
+
+  	log-source = true
+
+in the `[GELFLogger]` section to log the whole message.
+
+
 ## License
 
 See LICENSE.txt
