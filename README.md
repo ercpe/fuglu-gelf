@@ -10,7 +10,7 @@ After installation, make the following changes to your `fuglu.conf`
 	appenders=gelf
 
 	[PluginAlias]
-	gelf=fuglugelf.GELFLogger
+	gelf=fuglugelf.logger.GELFLogger
 
 and restart fuglu. This will log every mail passing through fuglu to `localhost:12201` on loglevel `INFO`.
 
