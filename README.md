@@ -16,7 +16,7 @@ and restart fuglu. This will log every mail passing through fuglu to `localhost:
 
 To configure the log level and/or the target host, add
 
-	[GLEFLogger]
+	[GELFLogger]
 	loglevel = DEBUG 
 	gelf-host = 10.11.12.13
 	gelf-port = 12345
