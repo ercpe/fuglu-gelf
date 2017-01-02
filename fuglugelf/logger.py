@@ -58,8 +58,9 @@ class GELFLogger(AppenderPlugin):
         return self.config.getboolean(self.section, 'log-source')
     
     def process(self, suspect, decision):
-        self.gelf_logger.log(self.log_level, "Suspect %s" % suspect.id,
-                             extra=self.build_data(suspect, actioncode_to_string(decision)))
+        extra_data = self.build_data(suspect, actioncode_to_string(decision))
+        self._logger().log(self.log_level, "Suspect %s, data=%s", suspect.id, extra_data)
+        self.gelf_logger.log(self.log_level, "Suspect %s" % suspect.id, extra=extra_data)
     
     def build_data(self, suspect, decision):
         prefix = "suspect"
@@ -86,5 +87,25 @@ class GELFLogger(AppenderPlugin):
         
         _add_to_dict(d, {'decision': decision}, [prefix])
         _add_to_dict(d, suspect, [prefix])
+
+        for i, rcvd in enumerate(reversed(self.info_from_rcvd(suspect))):
+            helo, revdns, ip = rcvd
+            _add_to_dict(d, {
+                'helo': helo,
+                'reverse_dns': revdns,
+                'ip': ip
+            }, [prefix, 'received_%s' % i])
         
         return d
+
+    def info_from_rcvd(self, suspect):
+        result = []
+
+        rcvd_headers = suspect.get_message_rep().get_all('Received')
+
+        for line in rcvd_headers:
+            x = suspect._parse_rcvd_header(line)
+            if x is not None:
+                result.append(x)
+
+        return result
