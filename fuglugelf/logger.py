@@ -102,6 +102,9 @@ class GELFLogger(AppenderPlugin):
         result = []
 
         rcvd_headers = suspect.get_message_rep().get_all('Received')
+        if not rcvd_headers:
+            self._logger().info("No 'Received' headers found in %s", suspect)
+            return result
 
         for line in rcvd_headers:
             x = suspect._parse_rcvd_header(line)
