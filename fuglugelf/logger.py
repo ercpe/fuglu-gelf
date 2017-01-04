@@ -71,19 +71,25 @@ class GELFLogger(AppenderPlugin):
                 result['_'.join(path)] = obj
             else:
                 items = obj if isinstance(obj, dict) else dict((attr, getattr(obj, attr, None)) for attr in dir(obj))
-                for k, v in items.items():
-                    if k.startswith('_') or v is None or callable(v):
+                for key, value in items.items():
+                    if key.startswith('_') or value is None:
+                        continue
+
+                    if callable(value):
+                        if isinstance(obj, Suspect) and key in ('is_spam', 'is_highspam', 'is_virus'):
+                            value = value()
+                        else:
+                            continue
+                    
+                    if key == 'source' and isinstance(obj, Suspect) and not self.log_source:
                         continue
                     
-                    if k == 'source' and isinstance(obj, Suspect) and not self.log_source:
-                        continue
+                    if key in ('scantimes', 'decisions'):  # special case - list of tuples
+                        value = dict(value)
+                    if key == 'fuglu.scantime':  # special case: it's a string in tags
+                        value = float(value)
                     
-                    if k in ('scantimes', 'decisions'):  # special case - list of tuples
-                        v = dict(v)
-                    if k == 'fuglu.scantime':  # special case: it's a string in tags
-                        v = float(v)
-                    
-                    _add_to_dict(result, v, path + [k])
+                    _add_to_dict(result, value, path + [key])
         
         _add_to_dict(d, {'decision': decision}, [prefix])
         _add_to_dict(d, suspect, [prefix])
