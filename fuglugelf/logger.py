@@ -4,7 +4,7 @@ import logging
 
 import graypy
 
-from fuglu.shared import AppenderPlugin, actioncode_to_string, Suspect
+from fuglu.shared import AppenderPlugin, actioncode_to_string, Suspect, yesno
 
 
 class GELFLogger(AppenderPlugin):
@@ -88,7 +88,10 @@ class GELFLogger(AppenderPlugin):
                         value = dict(value)
                     if key == 'fuglu.scantime':  # special case: it's a string in tags
                         value = float(value)
-                    
+
+                    if isinstance(value, bool):
+                        value = yesno(value)
+
                     _add_to_dict(result, value, path + [key])
         
         _add_to_dict(d, {'decision': decision}, [prefix])
