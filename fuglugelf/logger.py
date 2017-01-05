@@ -4,7 +4,7 @@ import logging
 
 import graypy
 
-from fuglu.shared import AppenderPlugin, actioncode_to_string, Suspect
+from fuglu.shared import AppenderPlugin, actioncode_to_string, Suspect, yesno
 
 
 class GELFLogger(AppenderPlugin):
@@ -71,19 +71,28 @@ class GELFLogger(AppenderPlugin):
                 result['_'.join(path)] = obj
             else:
                 items = obj if isinstance(obj, dict) else dict((attr, getattr(obj, attr, None)) for attr in dir(obj))
-                for k, v in items.items():
-                    if k.startswith('_') or v is None or callable(v):
+                for key, value in items.items():
+                    if key.startswith('_') or value is None:
+                        continue
+
+                    if callable(value):
+                        if isinstance(obj, Suspect) and key in ('is_spam', 'is_highspam', 'is_virus'):
+                            value = value()
+                        else:
+                            continue
+                    
+                    if key == 'source' and isinstance(obj, Suspect) and not self.log_source:
                         continue
                     
-                    if k == 'source' and isinstance(obj, Suspect) and not self.log_source:
-                        continue
-                    
-                    if k in ('scantimes', 'decisions'):  # special case - list of tuples
-                        v = dict(v)
-                    if k == 'fuglu.scantime':  # special case: it's a string in tags
-                        v = float(v)
-                    
-                    _add_to_dict(result, v, path + [k])
+                    if key in ('scantimes', 'decisions'):  # special case - list of tuples
+                        value = dict(value)
+                    if key == 'fuglu.scantime':  # special case: it's a string in tags
+                        value = float(value)
+
+                    if isinstance(value, bool):
+                        value = yesno(value)
+
+                    _add_to_dict(result, value, path + [key])
         
         _add_to_dict(d, {'decision': decision}, [prefix])
         _add_to_dict(d, {'subject', suspect.get_message_rep()['Subject'] or ""}, [prefix])
