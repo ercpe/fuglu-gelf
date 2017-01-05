@@ -86,6 +86,7 @@ class GELFLogger(AppenderPlugin):
                     _add_to_dict(result, v, path + [k])
         
         _add_to_dict(d, {'decision': decision}, [prefix])
+        _add_to_dict(d, {'subject', suspect.get_message_rep()['Subject'] or ""}, [prefix])
         _add_to_dict(d, suspect, [prefix])
 
         for i, rcvd in enumerate(reversed(self.info_from_rcvd(suspect))):
