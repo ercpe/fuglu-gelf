@@ -13,7 +13,7 @@ setup(
     author_email='johann@j-schmitz.net',
     url='https://code.not-your-server.de/fuglu-gelf.git',
     download_url='https://code.not-your-server.de/fuglu-gelf.git/tags/',
-    packages=find_packages(),
+    packages=find_packages(exclude=('tests', )),
     include_package_data=True,
     zip_safe=False,
     license='GPL-3',

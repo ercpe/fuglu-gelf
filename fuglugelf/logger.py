@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import logging
+from email.header import decode_header
 
 import graypy
-
 from fuglu.shared import AppenderPlugin, actioncode_to_string, Suspect, yesno
 
 
@@ -95,7 +95,7 @@ class GELFLogger(AppenderPlugin):
                     _add_to_dict(result, value, path + [key])
         
         _add_to_dict(d, {'decision': decision}, [prefix])
-        _add_to_dict(d, {'subject': suspect.get_message_rep()['Subject'] or ""}, [prefix])
+        _add_to_dict(d, {'subject': self.get_subject(suspect)}, [prefix])
         _add_to_dict(d, suspect, [prefix])
 
         for i, rcvd in enumerate(reversed(self.info_from_rcvd(suspect))):
@@ -107,6 +107,14 @@ class GELFLogger(AppenderPlugin):
             }, [prefix, 'received_%s' % i])
         
         return d
+
+    def get_subject(self, suspect):
+        msg = suspect.get_message_rep()
+        raw_subject = msg['Subject'] or ""
+        try:
+            return ''.join([s for s, _ in decode_header(raw_subject)])
+        except:
+            return raw_subject
 
     def info_from_rcvd(self, suspect):
         result = []
