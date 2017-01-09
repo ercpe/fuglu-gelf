@@ -21,3 +21,15 @@ class TestLogger(object):
         suspect = Suspect("sender@example.com", "suspect@example.com", f)
         
         assert plugin.get_subject(suspect) == "***SPAM***Webseite enthüllt: So verdient man 512 € am Tag automatisch"
+
+    def test_clean_address(self):
+        plugin = GELFLogger(ConfigParser())
+        
+        assert plugin.cleaned_address(None) == ""
+        assert plugin.cleaned_address("") == ""
+        assert plugin.cleaned_address(" sender@example.com ") == "sender@example.com"
+        assert plugin.cleaned_address("SENDER@EXAMPLE.COM") == "sender@example.com"
+
+        assert plugin.cleaned_address("recipient+test@example.com") == "recipient+test@example.com"
+        assert plugin.cleaned_address("recipient@example.com", '+') == "recipient@example.com"
+        assert plugin.cleaned_address("recipient+test@example.com", "+") == "recipient@example.com"

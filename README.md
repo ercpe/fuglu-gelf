@@ -20,6 +20,9 @@ To configure the log level and/or the target host, add
 	loglevel = DEBUG 
 	gelf-host = 10.11.12.13
 	gelf-port = 12345
+	
+	# optional, if you're using postfix recipient_delimiter
+	# recipient-delimiter = 
 
 to your `fuglu.conf` and restart fuglu.
 

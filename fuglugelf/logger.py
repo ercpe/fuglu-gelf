@@ -57,6 +57,12 @@ class GELFLogger(AppenderPlugin):
     def log_source(self):
         return self.config.getboolean(self.section, 'log-source')
     
+    @property
+    def recipient_delimiter(self):
+        if self.config.has_option(self.section, 'recipient-delimiter'):
+            return self.config.get(self.section, 'recipient-delimiter')
+        return None
+    
     def process(self, suspect, decision):
         extra_data = self.build_data(suspect, actioncode_to_string(decision))
         self._logger().log(self.log_level, "Suspect %s, data=%s", suspect.id, extra_data)
@@ -94,8 +100,12 @@ class GELFLogger(AppenderPlugin):
 
                     _add_to_dict(result, value, path + [key])
         
-        _add_to_dict(d, {'decision': decision}, [prefix])
-        _add_to_dict(d, {'subject': self.get_subject(suspect)}, [prefix])
+        _add_to_dict(d, {
+            'decision': decision,
+            'subject': self.get_subject(suspect),
+            'sender': self.cleaned_address(suspect.from_address),
+            'recipient': self.cleaned_address(suspect.to_address, self.recipient_delimiter),
+        }, [prefix])
         _add_to_dict(d, suspect, [prefix])
 
         for i, rcvd in enumerate(reversed(self.info_from_rcvd(suspect))):
@@ -129,3 +139,18 @@ class GELFLogger(AppenderPlugin):
                 result.append(x)
 
         return result
+
+    def cleaned_address(self, addr, delimiter=None):
+        s = (addr or "").lower().strip()
+        if not s:
+            return s
+
+        if delimiter:
+            localpart = s[:s.index('@')]
+            domain = s[s.index('@')+1:]
+            
+            if delimiter in localpart:
+                localpart = localpart[:localpart.index(delimiter)]
+                return "%s@%s" % (localpart, domain)
+        
+        return s
