@@ -31,6 +31,7 @@ class GELFLogger(AppenderPlugin):
         
         self._log_level = None
         self._gelf_logger = None
+        self.logger = self._logger()
     
     @property
     def log_level(self):
@@ -49,7 +50,7 @@ class GELFLogger(AppenderPlugin):
 
             handler = graypy.GELFHandler(host, port)
             self._gelf_logger.addHandler(handler)
-            self._logger().log(self.log_level, "Sending messages to GELF server at %s:%s on %s", host, port, self.log_level)
+            self.logger.log(self.log_level, "Sending messages to GELF server at %s:%s on %s", host, port, self.log_level)
 
         return self._gelf_logger
     
@@ -65,7 +66,7 @@ class GELFLogger(AppenderPlugin):
     
     def process(self, suspect, decision):
         extra_data = self.build_data(suspect, actioncode_to_string(decision))
-        self._logger().log(self.log_level, "Suspect %s, data=%s", suspect.id, extra_data)
+        self.logger.log(self.log_level, "Suspect %s, data=%s", suspect.id, extra_data)
         self.gelf_logger.log(self.log_level, "Suspect %s" % suspect.id, extra=extra_data)
     
     def build_data(self, suspect, decision):
@@ -105,6 +106,7 @@ class GELFLogger(AppenderPlugin):
             'subject': self.get_subject(suspect),
             'sender': self.cleaned_address(suspect.from_address),
             'recipient': self.cleaned_address(suspect.to_address, self.recipient_delimiter),
+            'virus_names': self.get_virus_names(suspect),
         }, [prefix])
         _add_to_dict(d, suspect, [prefix])
 
@@ -154,3 +156,14 @@ class GELFLogger(AppenderPlugin):
                 return "%s@%s" % (localpart, domain)
         
         return s
+
+    def get_virus_names(self, suspect):
+        l = []
+        
+        for k in [scanner for scanner in suspect.tags.keys() if scanner.endswith('.virus')]:
+            v = suspect.tags[k]
+            
+            if isinstance(v, dict):
+                l.extend([x.strip() for x in v.values() if x.strip()])
+        
+        return ', '.join(l)
