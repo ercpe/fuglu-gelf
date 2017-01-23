@@ -2,6 +2,7 @@
 
 import logging
 from email.header import decode_header
+from email.utils import getaddresses
 
 import graypy
 from fuglu.shared import AppenderPlugin, actioncode_to_string, Suspect, yesno
@@ -104,8 +105,10 @@ class GELFLogger(AppenderPlugin):
         _add_to_dict(d, {
             'decision': decision,
             'subject': self.get_subject(suspect),
-            'sender': self.cleaned_address(suspect.from_address),
-            'recipient': self.cleaned_address(suspect.to_address, self.recipient_delimiter),
+            'envelope_from': self.cleaned_address(suspect.from_address),
+            'envelope_to': self.cleaned_address(suspect.to_address, self.recipient_delimiter),
+            'sender': self.get_mail_sender(suspect),
+            'recipient': self.get_mail_recipient(suspect),
             'virus_names': self.get_virus_names(suspect),
         }, [prefix])
         _add_to_dict(d, suspect, [prefix])
@@ -119,6 +122,30 @@ class GELFLogger(AppenderPlugin):
             }, [prefix, 'received_%s' % i])
         
         return d
+
+    def get_mail_sender(self, suspect):
+        msg = suspect.get_message_rep()
+
+        if 'From' not in msg:
+            return None
+
+        try:
+            return ', '.join([self.cleaned_address(addr) for _, addr in getaddresses(msg.get_all('From'))])
+        except Exception as ex:
+            self.logger.info("Failed to extract sender address from '%s': %s", s, ex)
+            return ""
+
+    def get_mail_recipient(self, suspect):
+        msg = suspect.get_message_rep()
+
+        if 'To' not in msg:
+            return None
+
+        try:
+            return ', '.join([self.cleaned_address(addr, self.recipient_delimiter) for _, addr in getaddresses(msg.get_all('To'))])
+        except Exception as ex:
+            self.logger.info("Failed to extract recipient address: %s", ex)
+            return ""
 
     def get_subject(self, suspect):
         msg = suspect.get_message_rep()
