@@ -79,13 +79,13 @@ class GELFLogger(AppenderPlugin):
         return None
     
     def lint(self):
-        super(GELFLogger, self).lint()
         host = self.config.get(self.section, 'gelf-host')
         port = self.config.getint(self.section, 'gelf-port')
         protocol = self.config.get(self.section, 'gelf-protocol')
         self.logger.log(self.log_level, "Sending messages to GELF server at %s:%s on %s via %s", host, port, self.log_level, protocol)
         self.gelf_logger.log(self.log_level, "This is a test message from fuglu-gelf")
-    
+        return super(GELFLogger, self).lint()
+
     def process(self, suspect, decision):
         extra_data = self.build_data(suspect, actioncode_to_string(decision))
         self.logger.log(self.log_level, "Suspect %s, data=%s", suspect.id, extra_data)
