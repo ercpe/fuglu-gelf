@@ -7,6 +7,8 @@ from email.utils import getaddresses
 import graypy
 from fuglu.shared import AppenderPlugin, actioncode_to_string, Suspect, yesno
 
+from fuglugelf.httphandler import GELFHttpHandler
+
 
 class GELFLogger(AppenderPlugin):
     def __init__(self, *args, **kwargs):
@@ -28,6 +30,10 @@ class GELFLogger(AppenderPlugin):
                 'default': '12201',
                 'description': 'Port on the target server',
             },
+            'gelf-protocol': {
+                'default': 'udp',
+                'description': '''Procotol to use ('udp' for UDP, 'tcp' for TCP or 'http' for GELF via HTTP)'''
+            }
         }
         
         self._log_level = None
@@ -49,7 +55,14 @@ class GELFLogger(AppenderPlugin):
             host = self.config.get(self.section, 'gelf-host')
             port = self.config.getint(self.section, 'gelf-port')
 
-            handler = graypy.GELFHandler(host, port)
+            protocol = self.config.get(self.section, 'gelf-protocol')
+            if protocol == "tcp":
+                handler = graypy.GELFTcpHandler(host, port)
+            elif protocol == "http":
+                handler = GELFHttpHandler(host, port)
+            else:
+                handler = graypy.GELFHandler(host, port)
+                
             self._gelf_logger.addHandler(handler)
             self.logger.log(self.log_level, "Sending messages to GELF server at %s:%s on %s", host, port, self.log_level)
 

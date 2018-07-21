@@ -1,3 +1,4 @@
 # Project dependencies
 fuglu
 graypy
+requests
