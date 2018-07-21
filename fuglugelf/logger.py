@@ -64,7 +64,7 @@ class GELFLogger(AppenderPlugin):
                 handler = graypy.GELFHandler(host, port)
                 
             self._gelf_logger.addHandler(handler)
-            self.logger.log(self.log_level, "Sending messages to GELF server at %s:%s on %s", host, port, self.log_level)
+            self.logger.log(self.log_level, "Sending messages to GELF server at %s:%s on %s via %s", host, port, self.log_level, protocol)
 
         return self._gelf_logger
     
@@ -77,6 +77,14 @@ class GELFLogger(AppenderPlugin):
         if self.config.has_option(self.section, 'recipient-delimiter'):
             return self.config.get(self.section, 'recipient-delimiter')
         return None
+    
+    def lint(self):
+        super(GELFLogger, self).lint()
+        host = self.config.get(self.section, 'gelf-host')
+        port = self.config.getint(self.section, 'gelf-port')
+        protocol = self.config.get(self.section, 'gelf-protocol')
+        self.logger.log(self.log_level, "Sending messages to GELF server at %s:%s on %s via %s", host, port, self.log_level, protocol)
+        self.gelf_logger.log(self.log_level, "This is a test message from fuglu-gelf")
     
     def process(self, suspect, decision):
         extra_data = self.build_data(suspect, actioncode_to_string(decision))
